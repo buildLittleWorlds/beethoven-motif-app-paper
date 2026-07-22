@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Same, Under New Guises — a paper app</title>
+<style>
+  :root{
+    --paper:#ECEEF1;
+    --ink:#1A1E26;
+    --ink-soft:#4A505C;
+    --ink-faint:#7C8492;
+    --accent:#22456B;
+    --accent-bright:#2E679E;
+    --rule:#CDD2D9;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--serif);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+    padding:clamp(28px,6vw,72px) 22px 64px;
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 20px;
+  }
+
+  h1.title{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(2.1rem,6.5vw,3.3rem);
+    line-height:1.05;
+    letter-spacing:.01em;
+    margin:0 0 14px;
+    color:var(--ink);
+  }
+  .subtitle{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:clamp(1.1rem,2.6vw,1.3rem);
+    line-height:1.4;
+    color:var(--ink-soft);
+    margin:0 0 30px;
+    max-width:44ch;
+  }
+
+  /* Essay prose */
+  .prose p{
+    font-size:1.06rem;
+    line-height:1.62;
+    color:var(--ink);
+    margin:0 0 16px;
+    max-width:64ch;
+  }
+  .prose p:last-child{margin-bottom:0;}
+  .prose em{font-style:italic;}
+
+  .pull{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:clamp(1.25rem,3vw,1.55rem);
+    line-height:1.4;
+    color:var(--ink);
+    border-left:3px solid var(--accent);
+    padding-left:22px;
+    margin:30px 0;
+    max-width:52ch;
+  }
+  .pull .attr{
+    display:block;
+    font-style:normal;
+    font-family:var(--mono);
+    font-size:.76rem;
+    letter-spacing:.04em;
+    color:var(--ink-faint);
+    margin-top:12px;
+  }
+
+  /* Sections */
+  .section{
+    margin-top:44px;
+    border-top:1px solid var(--rule);
+    padding-top:26px;
+  }
+  .section-label{
+    font-family:var(--mono);
+    font-size:.72rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 18px;
+    font-weight:600;
+  }
+
+  .motif-emblem{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:1.5rem;
+    letter-spacing:.02em;
+    color:var(--ink);
+    margin:0 0 26px;
+  }
+  .motif-emblem strong{color:var(--accent);font-weight:700;}
+
+  /* Timeline: bars positioned by onset, sized by duration, morphing live */
+  .track{position:relative;height:92px;margin:8px 0 18px;}
+  .note-unit{
+    position:absolute;bottom:0;height:100%;min-width:16px;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  }
+  .note{
+    font-family:var(--mono);font-size:.8rem;color:var(--ink-soft);
+    letter-spacing:.02em;margin-bottom:8px;white-space:nowrap;
+  }
+  .bar{
+    width:100%;height:64px;border:2px solid var(--accent);
+    background:var(--accent);border-radius:3px;
+    transition:background .12s ease, transform .12s ease;
+  }
+  .bar.hit{background:var(--accent-bright);transform:translateY(-3px);}
+
+  /* Slider */
+  .dial{margin:6px 0 4px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer;}
+  input[type=range]:focus{outline:none;}
+  input[type=range]:focus-visible{outline:2px solid var(--accent-bright);outline-offset:6px;border-radius:4px;}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--rule);border-radius:2px;}
+  input[type=range]::-moz-range-track{height:4px;background:var(--rule);border-radius:2px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;margin-top:-8px;background:var(--accent);border-radius:50%;border:2px solid var(--paper);}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;background:var(--accent);border-radius:50%;border:2px solid var(--paper);}
+  .dial-ends{
+    display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:.7rem;color:var(--ink-faint);
+    letter-spacing:.1em;text-transform:uppercase;margin-top:8px;
+  }
+
+  .status{
+    font-family:var(--mono);font-size:.82rem;color:var(--accent);
+    text-align:center;margin:16px 0 24px;min-height:1.1em;letter-spacing:.02em;
+  }
+
+  .controls{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:26px;}
+  button{
+    flex:1 1 200px;font-family:var(--mono);font-size:.95rem;font-weight:600;
+    color:var(--paper);background:var(--accent);border:none;border-radius:8px;
+    padding:16px 18px;cursor:pointer;text-align:left;line-height:1.25;
+    transition:background .15s ease;display:flex;flex-direction:column;gap:5px;
+  }
+  button span{font-weight:400;font-size:.78rem;opacity:.82;letter-spacing:0;}
+  button:hover{background:var(--accent-bright);}
+  #origBtn{background:transparent;color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent);}
+  #origBtn span{color:var(--ink-soft);opacity:1;}
+  #origBtn:hover{background:rgba(46,103,158,.08);}
+  button:focus-visible{outline:2px solid var(--accent-bright);outline-offset:3px;}
+
+  .subhead{
+    font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-faint);margin:0 0 10px;font-weight:600;
+  }
+
+  /* References */
+  .refs{font-family:var(--mono);font-size:.8rem;line-height:1.7;color:var(--ink-soft);}
+  .refs p{margin:0 0 12px;max-width:62ch;}
+  .refs a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--rule);}
+  .refs a:hover{border-bottom-color:var(--accent);}
+
+  footer{
+    margin-top:44px;font-family:var(--mono);font-size:.7rem;
+    color:var(--ink-faint);letter-spacing:.04em;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .bar{transition:none;}
+    .bar.hit{transform:none;}
+    button{transition:none;}
+  }
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <p class="eyebrow">A paper app &mdash; a four-note motif meets a rhetorical idea</p>
+
+    <h1 class="title">The Same, Under New Guises</h1>
+    <p class="subtitle">Beethoven&rsquo;s four notes, put to Kenneth Burke&rsquo;s test of repetitive form.</p>
+
+    <div class="prose">
+      <p>Four notes &mdash; <em>da-da-da-DUM</em> &mdash; open Beethoven&rsquo;s Fifth, and from that three-second cell he builds half an hour of music. The phrase keeps returning, but rarely unchanged: inverted, stretched, handed between instruments, buried in the bass. Each return is the same idea wearing a different coat.</p>
+      <p>Kenneth Burke had a name for that. In <em>Counter-Statement</em>, he treats form not as a property of the artwork but as a transaction with its audience &mdash; a work has form when it stirs an expectation in us and then satisfies it. One shape that transaction takes he called <em>repetitive form</em>: the consistent maintaining of a principle under new guises. A motif is repetitive form in miniature &mdash; a principle held steady while its guise keeps changing.</p>
+    </div>
+
+    <blockquote class="pull">
+      &ldquo;Repetitive form &hellip; the consistent maintaining of a principle under new guises. It is the restatement of the same thing in different ways.&rdquo;
+      <span class="attr">Kenneth Burke, <em>Counter-Statement</em>, &ldquo;Lexicon Rhetoricae&rdquo;</span>
+    </blockquote>
+
+    <div class="prose">
+      <p>This page is a small instrument for finding the edge of that idea. Beethoven kept the principle recognizable; but a guise can be pushed too far, and somewhere the new coat stops belonging to the same body. Below, you can push it yourself &mdash; then read what Burke helps us make of where it broke.</p>
+    </div>
+
+    <!-- ============ THE INSTRUMENT ============ -->
+    <section class="section">
+      <p class="section-label">The instrument</p>
+
+      <p class="motif-emblem">da da da <strong>DUM</strong></p>
+
+      <div class="prose">
+        <p>The pitches stay fixed &mdash; G, G, G, E&#9837;. The slider warps only the <em>rhythm</em>, from the crisp original toward a scrambled version. Drag slowly, play as you go, and use <em>Play the original</em> to compare. Judge one thing at every step: is this still the Fifth &mdash; is the principle still being maintained?</p>
+      </div>
+
+      <div class="track" id="track" aria-hidden="true">
+        <div class="note-unit"><span class="note">G</span><div class="bar"></div></div>
+        <div class="note-unit"><span class="note">G</span><div class="bar"></div></div>
+        <div class="note-unit"><span class="note">G</span><div class="bar"></div></div>
+        <div class="note-unit"><span class="note">E&#9837;</span><div class="bar"></div></div>
+      </div>
+
+      <div class="dial">
+        <input type="range" id="warp" min="0" max="100" value="0"
+               aria-label="Rhythm warp, from crisp to dissolved">
+        <div class="dial-ends"><span>the principle, plainly</span><span>new guises, pushed</span></div>
+      </div>
+
+      <p class="status" id="status" aria-live="polite">Warp 0% &mdash; original</p>
+
+      <div class="controls">
+        <button id="playBtn" type="button">Play<span>Hear the rhythm at this setting</span></button>
+        <button id="origBtn" type="button">Play the original<span>Snap back to the plain principle</span></button>
+      </div>
+
+      <p class="subhead">What to notice</p>
+      <div class="prose">
+        <p>There&rsquo;s a stretch where it holds, then a fairly sudden point where it tips into &ldquo;just four notes.&rdquo; Mark where that happened for you. Then look at the far end: the pitches are untouched, yet the phrase is gone &mdash; the identity was living in the rhythm, not the notes. And the question Burke presses on us: was the line you just drew <em>in the music, or in you?</em></p>
+      </div>
+    </section>
+
+    <!-- ============ THE ARGUMENT ============ -->
+    <section class="section">
+      <p class="section-label">The argument</p>
+      <div class="prose">
+        <p>Burke&rsquo;s move is to put form on the listener&rsquo;s side of the equation. A shape is &ldquo;formal&rdquo; not because of anything intrinsic to the notes, but because of what it does to an audience: it raises an appetite and then feeds it. Apply that here and the tipping point you just found changes character. &ldquo;It stops being the Fifth&rdquo; is not a measurement you could read off the waveform &mdash; it is the moment the expectation the motif aroused is no longer satisfied, the appetite left unanswered. The boundary is a fact about a relationship, not about the sound alone.</p>
+
+        <p>That predicts something the instrument can&rsquo;t settle by itself: your line and someone else&rsquo;s needn&rsquo;t fall in the same place. If a principle is &ldquo;maintained&rdquo; only insofar as a listener still hears it maintained, then familiarity, training, and attention should slide the threshold around. The memory research points the same way &mdash; whether a variation still reads as the original leans heavily on what the listener already knows and how they encoded it, not on the stimulus in isolation. Burke&rsquo;s rhetoric and the cognitive science meet in the same spot: the edge of &ldquo;the same&rdquo; is drawn partly by the ear doing the listening.</p>
+
+        <p>What the instrument adds to Burke is motion. &ldquo;Repetitive form&rdquo; is stated as a settled category &mdash; the principle is maintained, and that is that. But the phrase quietly assumes success; it never asks what maintenance costs, or when it fails. The slider makes that assumption a variable. It runs the guises out past the point of return, so you can watch a principle be maintained, strain, and break. The interesting object isn&rsquo;t the safe middle of repetitive form &mdash; it&rsquo;s the edge, where restatement-of-the-same slips into simply-a-different-thing.</p>
+      </div>
+    </section>
+
+    <!-- ============ HONESTY ============ -->
+    <section class="section">
+      <p class="section-label">What it shows &mdash; and what it doesn&rsquo;t</p>
+      <div class="prose">
+        <p>Two cautions keep the claim honest. First, this is one motif tested along one dimension. The Fifth is an unusually rhythm-heavy case: its pitches &mdash; three repeated notes and a drop &mdash; are generic enough that the rhythm carries almost all of the identifying, which is exactly why warping the rhythm is so destructive. For most tunes the balance tilts the other way, and pitch does more of the work; so the specific result here is a limiting case, not a general law.</p>
+        <p>Second, the page can stage the before and after and let your ear rule &mdash; it cannot certify that two versions are &ldquo;the same.&rdquo; It shows you a principle surviving and failing. It only <em>suggests</em> where the line sits, and it can&rsquo;t tell you whether anyone else would draw it in the same place. That last uncertainty isn&rsquo;t a flaw in the instrument; on Burke&rsquo;s account, it&rsquo;s the whole point.</p>
+      </div>
+    </section>
+
+    <!-- ============ REFERENCE ============ -->
+    <section class="section">
+      <p class="section-label">Reference</p>
+      <div class="refs">
+        <p>Kenneth Burke, <em>Counter-Statement</em>, &ldquo;Lexicon Rhetoricae.&rdquo; Berkeley: University of California Press, 1968 (first published 1931). The treatment of form as the arousal and fulfillment of expectation, and the aspects of form including repetitive form, appear at roughly pp.&nbsp;123&ndash;125.</p>
+        <p>Further reading, on the cognitive side: S.&nbsp;H&eacute;bert &amp; I.&nbsp;Peretz, <a href="https://consensus.app/papers/details/bfcfba4808895c4da9135d279b41e5e2/?utm_source=claude_desktop">&ldquo;Recognition of music in long-term memory: Are melodic and temporal patterns equal partners?&rdquo;</a> (1997); C.&nbsp;L.&nbsp;Krumhansl, <a href="https://consensus.app/papers/details/1dfee595d7335c7f875579075e030b2c/?utm_source=claude_desktop">&ldquo;Rhythm and pitch in music cognition&rdquo;</a> (2000).</p>
+      </div>
+    </section>
+
+    <footer>Specimen: Beethoven, Symphony No.&nbsp;5 in C minor &mdash; the opening motif.</footer>
+  </main>
+
+<script>
+(function(){
+  var audio = null;
+  function ctx(){
+    if(!audio){ audio = new (window.AudioContext || window.webkitAudioContext)(); }
+    if(audio.state === "suspended"){ audio.resume(); }
+    return audio;
+  }
+
+  // Pitches stay fixed: G G G E-flat.
+  var PITCH = [392.00, 392.00, 392.00, 311.13];
+
+  // Two rhythm endpoints. Slider interpolates between them.
+  var CRISP     = [{on:0.00,dur:0.13},{on:0.19,dur:0.13},{on:0.38,dur:0.13},{on:0.60,dur:0.95}];
+  var DISSOLVED = [{on:0.00,dur:0.45},{on:0.48,dur:0.12},{on:0.66,dur:0.30},{on:1.05,dur:0.55}];
+  var TOTAL = 1.75; // seconds mapped across the track width
+
+  function lerp(a,b,t){ return a + (b-a)*t; }
+  function rhythmAt(s){
+    var out=[];
+    for(var i=0;i<4;i++){
+      out.push({
+        on:  lerp(CRISP[i].on,  DISSOLVED[i].on,  s),
+        dur: lerp(CRISP[i].dur, DISSOLVED[i].dur, s)
+      });
+    }
+    return out;
+  }
+
+  var units  = Array.prototype.slice.call(document.querySelectorAll(".note-unit"));
+  var bars   = units.map(function(u){ return u.querySelector(".bar"); });
+  var slider = document.getElementById("warp");
+  var status = document.getElementById("status");
+
+  function drawBars(r){
+    for(var i=0;i<4;i++){
+      units[i].style.left  = (r[i].on  / TOTAL * 100) + "%";
+      units[i].style.width = (r[i].dur / TOTAL * 100) + "%";
+    }
+  }
+
+  function word(v){
+    if(v === 0) return "original";
+    if(v <= 40) return "drifting";
+    if(v <= 80) return "coming apart";
+    return "dissolved";
+  }
+
+  function play(r){
+    var c = ctx();
+    var t0 = c.currentTime + 0.06;
+    for(var i=0;i<4;i++){
+      var on = r[i].on, dur = r[i].dur;
+      var start = t0 + on, end = start + dur;
+
+      var osc = c.createOscillator();
+      var g = c.createGain();
+      osc.type = "triangle";
+      osc.frequency.value = PITCH[i];
+      g.gain.setValueAtTime(0.0001, start);
+      g.gain.exponentialRampToValueAtTime(0.22, start + 0.01);
+      g.gain.setValueAtTime(0.22, Math.max(start + 0.01, end - 0.06));
+      g.gain.exponentialRampToValueAtTime(0.0001, end);
+      osc.connect(g).connect(c.destination);
+      osc.start(start);
+      osc.stop(end + 0.03);
+
+      (function(idx, onset, len){
+        setTimeout(function(){
+          bars[idx].classList.add("hit");
+          setTimeout(function(){ bars[idx].classList.remove("hit"); }, Math.max(120, len*1000));
+        }, onset*1000 + 60);
+      })(i, on, dur);
+    }
+  }
+
+  slider.addEventListener("input", function(){
+    var v = parseInt(slider.value, 10);
+    drawBars(rhythmAt(v/100));
+    status.textContent = "Warp " + v + "% \u2014 " + word(v);
+  });
+
+  document.getElementById("playBtn").addEventListener("click", function(){
+    play(rhythmAt(parseInt(slider.value,10)/100));
+  });
+  document.getElementById("origBtn").addEventListener("click", function(){
+    play(CRISP);
+  });
+
+  drawBars(CRISP);
+})();
+</script>
+</body>
+</html>
